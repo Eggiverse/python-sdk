@@ -44,9 +44,6 @@ DEFAULT_INHERITED_ENV_VARS = (
     else ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"]
 )
 
-# Timeout for process termination before falling back to force kill
-PROCESS_TERMINATION_TIMEOUT = 2.0
-
 
 def get_default_environment() -> dict[str, str]:
     """
@@ -99,6 +96,13 @@ class StdioServerParameters(BaseModel):
 
     See https://docs.python.org/3/library/codecs.html#codec-base-classes for
     explanations of possible values
+    """
+
+    process_termination_timeout: float = 2.0
+    """
+    Timeout for process termination before falling back to force kill
+
+    defaults to 2.0
     """
 
 
@@ -200,7 +204,7 @@ async def stdio_client(server: StdioServerParameters, errlog: TextIO = sys.stder
 
             try:
                 # Give the process time to exit gracefully after stdin closes
-                with anyio.fail_after(PROCESS_TERMINATION_TIMEOUT):
+                with anyio.fail_after(server.process_termination_timeout):
                     await process.wait()
             except TimeoutError:
                 # Process didn't exit from stdin closure, use platform-specific termination
